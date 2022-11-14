@@ -1,19 +1,5 @@
-# Async-retry
-Async-retry controls asynchronous retries in Go, and can be shutdown gracefully.
+package asyncretry_test
 
-Main features of Async-retry are
-* Disable cancellation of context when pass to function as an argument
-* Keep value of context when pass to function as an argument
-* Set timeout(default 10s) for each function call
-* Recover from panic
-* Control retry with delegating to https://github.com/avast/retry-go
-* Shutdown safely anytime
-
-You can find other features or settings in options.go
-
-# Example
-
-```
 import (
 	"context"
 	"fmt"
@@ -73,18 +59,3 @@ func ExampleAsyncRetry() {
 
 	<-ch
 }
-```
-
-
-# UseCase
-We'll post a blog explains why we need this soon.
-
-# Contributing
-We are always welcome your contribution!
-
-If you find bugs or want to add new features, please raise issues.
-
-# License
-MIT License
-
-Copyright (c) 2022 Kyash
