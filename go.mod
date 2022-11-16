@@ -1,4 +1,4 @@
-module github.com/go-misc/async-retry
+module github.com/Kyash/async-retry
 
 go 1.17
 

@@ -9,7 +9,7 @@ import (
 	"os/signal"
 	"time"
 
-	asyncretry "github.com/go-misc/async-retry"
+	asyncretry "github.com/Kyash/async-retry"
 )
 
 func ExampleAsyncRetry() {
