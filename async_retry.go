@@ -41,6 +41,7 @@ func (a *asyncRetry) Do(ctx context.Context, f AsyncRetryFunc, opts ...Option) (
 		return InShutdownErr
 	default:
 	}
+	// notice that this line should be in lock so that shutdown would not go ahead
 	a.wg.Add(1)
 	a.mu.Unlock()
 	defer a.wg.Done()
