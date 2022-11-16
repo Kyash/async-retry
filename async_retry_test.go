@@ -224,9 +224,9 @@ func Test_asyncRetry_DoWithConfigContext(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			// fixme: this error message is wrong due to retry-go bug
 			expectedErr: fmt.Errorf(`All attempts fail:
-#1: context canceled`),
+#1: always error
+#2: context canceled`),
 			expectedCounter: 1,
 		},
 		{
@@ -251,9 +251,9 @@ func Test_asyncRetry_DoWithConfigContext(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			// fixme: this error message is wrong due to retry-go bug
 			expectedErr: fmt.Errorf(`All attempts fail:
-#1: context canceled`),
+#1: always error
+#2: context canceled`),
 			expectedCounter: 1,
 		},
 		{
@@ -381,9 +381,9 @@ func Test_asyncRetry_DoAndShutdown(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			// fixme: this error message is wrong due to retry-go bug
 			expectedErr: fmt.Errorf(`All attempts fail:
-#1: context canceled`),
+#1: always error
+#2: context canceled`),
 			expectedCounter: 1,
 		},
 		{
@@ -409,9 +409,9 @@ func Test_asyncRetry_DoAndShutdown(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			// fixme: this error message is wrong due to retry-go bug
 			expectedErr: fmt.Errorf(`All attempts fail:
-#1: context canceled`),
+#1: always error
+#2: context canceled`),
 			expectedCounter: 1,
 		},
 		{
