@@ -45,7 +45,7 @@ func ExampleAsyncRetry() {
 					asyncretry.Timeout(8*time.Second),
 				)
 				if err != nil {
-					log.Printf(err.Error())
+					log.Println(err.Error())
 				}
 			}()
 			fmt.Fprintf(w, "Hello")
