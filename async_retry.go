@@ -32,14 +32,14 @@ func NewAsyncRetry() AsyncRetry {
 	}
 }
 
-var InShutdownErr = fmt.Errorf("AsyncRetry is in shutdown")
+var ErrInShutdown = fmt.Errorf("AsyncRetry is in shutdown")
 
 func (a *asyncRetry) Do(ctx context.Context, f RetryableFunc, opts ...Option) (retErr error) {
 	a.mu.Lock()
 	select {
 	case <-a.shutdownChan:
 		a.mu.Unlock()
-		return InShutdownErr
+		return ErrInShutdown
 	default:
 	}
 	// notice that this line should be in lock so that shutdown would not go ahead

@@ -527,7 +527,7 @@ func Test_ShutdownOrder(t *testing.T) {
 		szShutdown int
 	}{
 		{
-			"Calls of Do which happens before call of shutdown blocks shutdown, and calls of Do which happen after call of shutdown return InShutdownErr",
+			"Calls of Do which happens before call of shutdown blocks shutdown, and calls of Do which happen after call of shutdown return ErrInShutdown",
 			1000,
 			1,
 		},
@@ -594,7 +594,7 @@ func Test_ShutdownOrder(t *testing.T) {
 						return nil
 					},
 				)
-				if err == nil || err.Error() != InShutdownErr.Error() {
+				if err == nil || err.Error() != ErrInShutdown.Error() {
 					t.Errorf("call of Do after shudown must returns InShutdownErr")
 				}
 			}
