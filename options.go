@@ -32,7 +32,7 @@ var DefaultConfig = Config{
 	maxJitter:                       time.Millisecond * 100,
 }
 
-// Timeout sets timeout for AsyncRetryFunc
+// Timeout sets timeout for RetryableFunc
 // 0 or value less than 0 means no timeout. In most cases, setting timeout is preferable.
 func Timeout(timeout time.Duration) Option {
 	return func(c *Config) {
@@ -49,7 +49,7 @@ func Context(ctx context.Context) Option {
 }
 
 // CancelWhenShutdown sets boolean
-// If true, cancel the context specified as an argument of AsyncRetryFunc when Shutdown is called
+// If true, cancel the context specified as an argument of RetryableFunc when Shutdown is called
 func CancelWhenShutdown(cancel bool) Option {
 	return func(c *Config) {
 		c.cancelWhenShutdown = cancel
@@ -57,7 +57,7 @@ func CancelWhenShutdown(cancel bool) Option {
 }
 
 // CancelWhenConfigContextCanceled sets boolean
-// If true, cancel the context specified as an argument of AsyncRetryFunc when c.context is canceled
+// If true, cancel the context specified as an argument of RetryableFunc when c.context is canceled
 func CancelWhenConfigContextCanceled(cancel bool) Option {
 	return func(c *Config) {
 		c.cancelWhenConfigContextCanceled = cancel

@@ -8,12 +8,12 @@ import (
 	"github.com/avast/retry-go/v4"
 )
 
-type AsyncRetryFunc func(ctx context.Context) error
+type RetryableFunc func(ctx context.Context) error
 
 type AsyncRetry interface {
 	// Do calls f and retry if necessary.
 	// In most cases, you should call Do in a new goroutine.
-	Do(ctx context.Context, f AsyncRetryFunc, opts ...Option) error
+	Do(ctx context.Context, f RetryableFunc, opts ...Option) error
 	// Shutdown shutdowns gracefully
 	Shutdown(ctx context.Context) error
 }
@@ -34,7 +34,7 @@ func NewAsyncRetry() AsyncRetry {
 
 var InShutdownErr = fmt.Errorf("AsyncRetry is in shutdown")
 
-func (a *asyncRetry) Do(ctx context.Context, f AsyncRetryFunc, opts ...Option) (retErr error) {
+func (a *asyncRetry) Do(ctx context.Context, f RetryableFunc, opts ...Option) (retErr error) {
 	a.mu.Lock()
 	select {
 	case <-a.shutdownChan:
