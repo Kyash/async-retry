@@ -587,14 +587,16 @@ func Test_ShutdownOrder(t *testing.T) {
 				i++
 			}
 			// after shutdown
-			err := a.Do(
-				context.Background(),
-				func(ctx context.Context) error {
-					return nil
-				},
-			)
-			if err == nil || err.Error() != InShutdownErr.Error() {
-				t.Errorf("call of Do after shudown must returns InShutdownErr")
+			for i := 0; i < 10; i++ {
+				err := a.Do(
+					context.Background(),
+					func(ctx context.Context) error {
+						return nil
+					},
+				)
+				if err == nil || err.Error() != InShutdownErr.Error() {
+					t.Errorf("call of Do after shudown must returns InShutdownErr")
+				}
 			}
 		})
 	}

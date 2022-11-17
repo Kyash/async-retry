@@ -38,6 +38,7 @@ func (a *asyncRetry) Do(ctx context.Context, f AsyncRetryFunc, opts ...Option) (
 	a.mu.Lock()
 	select {
 	case <-a.shutdownChan:
+		a.mu.Unlock()
 		return InShutdownErr
 	default:
 	}
