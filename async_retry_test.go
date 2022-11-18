@@ -498,11 +498,7 @@ func Test_asyncRetry_DoAndShutdown(t *testing.T) {
 			if err != nil {
 				t.Errorf("Shutdown() error = %v, wantErr %v", err, nil)
 			}
-			select {
-			case err = <-doErr:
-			default:
-				t.Errorf("Do must be finished before Shutdown")
-			}
+			err = <-doErr
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Do() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -601,3 +597,42 @@ func Test_ShutdownOrder(t *testing.T) {
 		})
 	}
 }
+
+func benchmarkDo(tasks int, concurrency int, b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		ch := make(chan struct{}, 100)
+		a := NewAsyncRetry()
+		wg := sync.WaitGroup{}
+		for c := 0; c < concurrency; c++ {
+			wg.Add(1)
+			go func() {
+				var dummy int
+				defer wg.Done()
+				for range ch {
+					for i := 0; i < 10000; i++ {
+						dummy /= dummy + 1
+					}
+					_ = a.Do(context.Background(), func(ctx context.Context) error {
+						var dummy int
+						for i := 0; i < 10000; i++ {
+							dummy /= dummy + 1
+						}
+						return nil
+					})
+				}
+			}()
+		}
+		for i := 0; i < tasks; i++ {
+			ch <- struct{}{}
+		}
+		close(ch)
+		wg.Wait()
+	}
+}
+
+func BenchmarkDo10000With2(b *testing.B)  { benchmarkDo(3000, 2, b) }
+func BenchmarkDo10000With4(b *testing.B)  { benchmarkDo(3000, 4, b) }
+func BenchmarkDo10000With8(b *testing.B)  { benchmarkDo(3000, 8, b) }
+func BenchmarkDo10000With16(b *testing.B) { benchmarkDo(3000, 16, b) }
+func BenchmarkDo10000With32(b *testing.B) { benchmarkDo(3000, 32, b) }
+func BenchmarkDo10000With64(b *testing.B) { benchmarkDo(3000, 64, b) }
