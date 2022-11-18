@@ -17,7 +17,7 @@ var counter = 0
 
 func Test_asyncRetry_Do(t *testing.T) {
 	type args struct {
-		f    AsyncRetryFunc
+		f    RetryableFunc
 		ctx  func() context.Context
 		opts []Option
 	}
@@ -76,7 +76,7 @@ func Test_asyncRetry_Do(t *testing.T) {
 			expectedCounter: 3,
 		},
 		{
-			name: "Cancellation of context, argument of Do is not propagated to AsyncRetryFunc",
+			name: "Cancellation of context, argument of Do is not propagated to RetryableFunc",
 			args: args{
 				f: func(ctx context.Context) error {
 					select {
@@ -102,7 +102,7 @@ func Test_asyncRetry_Do(t *testing.T) {
 			expectedErr: nil,
 		},
 		{
-			name: "Context, argument of AsyncRetryFunc keeps value",
+			name: "Context, argument of RetryableFunc keeps value",
 			args: args{
 				f: func(ctx context.Context) error {
 					if ctx.Value(contextValueKey) != 1 {
@@ -191,7 +191,7 @@ var cancel context.CancelFunc
 
 func Test_asyncRetry_DoWithConfigContext(t *testing.T) {
 	type args struct {
-		f    AsyncRetryFunc
+		f    RetryableFunc
 		ctx  func() context.Context
 		opts func() []Option
 	}
@@ -257,7 +257,7 @@ func Test_asyncRetry_DoWithConfigContext(t *testing.T) {
 			expectedCounter: 1,
 		},
 		{
-			name: "Context, argument of AsyncRetryFunc is canceled when CancelWhenConfigContextCanceled is true",
+			name: "Context, argument of RetryableFunc is canceled when CancelWhenConfigContextCanceled is true",
 			args: args{
 				f: func(ctx context.Context) error {
 					counter++
@@ -287,7 +287,7 @@ func Test_asyncRetry_DoWithConfigContext(t *testing.T) {
 			expectedCounter: 1,
 		},
 		{
-			name: "Context, argument of AsyncRetryFunc is NOT canceled when CancelWhenConfigContextCanceled is false",
+			name: "Context, argument of RetryableFunc is NOT canceled when CancelWhenConfigContextCanceled is false",
 			args: args{
 				f: func(ctx context.Context) error {
 					counter++
@@ -347,7 +347,7 @@ var ch chan struct{}
 
 func Test_asyncRetry_DoAndShutdown(t *testing.T) {
 	type args struct {
-		f    AsyncRetryFunc
+		f    RetryableFunc
 		ctx  func() context.Context
 		opts func() []Option
 	}
@@ -415,7 +415,7 @@ func Test_asyncRetry_DoAndShutdown(t *testing.T) {
 			expectedCounter: 1,
 		},
 		{
-			name: "Context, argument of AsyncRetryFunc is canceled when CancelWhenShutdown is true",
+			name: "Context, argument of RetryableFunc is canceled when CancelWhenShutdown is true",
 			args: args{
 				f: func(ctx context.Context) error {
 					counter++
@@ -443,7 +443,7 @@ func Test_asyncRetry_DoAndShutdown(t *testing.T) {
 			expectedCounter: 1,
 		},
 		{
-			name: "Context, argument of AsyncRetryFunc is canceled when CancelWhenShutdown is false",
+			name: "Context, argument of RetryableFunc is canceled when CancelWhenShutdown is false",
 			args: args{
 				f: func(ctx context.Context) error {
 					counter++
@@ -527,7 +527,7 @@ func Test_ShutdownOrder(t *testing.T) {
 		szShutdown int
 	}{
 		{
-			"Calls of Do which happens before call of shutdown blocks shutdown, and calls of Do which happen after call of shutdown return InShutdownErr",
+			"Calls of Do which happens before call of shutdown blocks shutdown, and calls of Do which happen after call of shutdown return ErrInShutdown",
 			1000,
 			1,
 		},
@@ -594,7 +594,7 @@ func Test_ShutdownOrder(t *testing.T) {
 						return nil
 					},
 				)
-				if err == nil || err.Error() != InShutdownErr.Error() {
+				if err == nil || err.Error() != ErrInShutdown.Error() {
 					t.Errorf("call of Do after shudown must returns InShutdownErr")
 				}
 			}
