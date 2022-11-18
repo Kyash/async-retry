@@ -498,11 +498,7 @@ func Test_asyncRetry_DoAndShutdown(t *testing.T) {
 			if err != nil {
 				t.Errorf("Shutdown() error = %v, wantErr %v", err, nil)
 			}
-			select {
-			case err = <-doErr:
-			default:
-				t.Errorf("Do must be finished before Shutdown")
-			}
+			err = <-doErr
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Do() error = %v, wantErr %v", err, tt.wantErr)
 			}
