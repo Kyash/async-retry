@@ -612,7 +612,7 @@ func benchmarkDo(tasks int, concurrency int, b *testing.B) {
 			go func() {
 				var dummy int
 				defer wg.Done()
-				for _ = range ch {
+				for range ch {
 					for i := 0; i < 10000; i++ {
 						dummy /= dummy + 1
 					}
