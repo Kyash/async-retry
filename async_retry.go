@@ -19,8 +19,7 @@ type AsyncRetry interface {
 }
 
 type asyncRetry struct {
-	// FIXME use RWMutex instead
-	mu           sync.Mutex // guards wg and shutdownChan
+	mu           sync.RWMutex // guards wg and shutdownChan
 	wg           sync.WaitGroup
 	shutdownChan chan struct{}
 }
@@ -35,16 +34,16 @@ func NewAsyncRetry() AsyncRetry {
 var ErrInShutdown = fmt.Errorf("AsyncRetry is in shutdown")
 
 func (a *asyncRetry) Do(ctx context.Context, f RetryableFunc, opts ...Option) (retErr error) {
-	a.mu.Lock()
+	a.mu.RLock()
 	select {
 	case <-a.shutdownChan:
-		a.mu.Unlock()
+		a.mu.RUnlock()
 		return ErrInShutdown
 	default:
 	}
 	// notice that this line should be in lock so that shutdown would not go ahead
 	a.wg.Add(1)
-	a.mu.Unlock()
+	a.mu.RUnlock()
 	defer a.wg.Done()
 
 	config := DefaultConfig
