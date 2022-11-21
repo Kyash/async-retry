@@ -1,4 +1,6 @@
 # Async-retry
+[![Go Reference](https://pkg.go.dev/badge/github.com/Kyash/async-retry.svg)](https://pkg.go.dev/github.com/Kyash/async-retry)
+
 Async-retry controls asynchronous retries in Go, and can be shutdown gracefully.
 
 Main features of Async-retry are
