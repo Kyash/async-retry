@@ -167,9 +167,13 @@ func Test_asyncRetry_Do(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			counter = 0
 			a := NewAsyncRetry()
+			ch := make(chan error)
 			var err error
-			// Be careful not call Do synchronously when actually using
-			if err = a.Do(tt.args.ctx(), tt.args.f, tt.args.opts...); (err != nil) != tt.wantErr {
+			if err = a.Do(tt.args.ctx(), tt.args.f, func(err error) { ch <- err }, tt.args.opts...); err != nil {
+				t.Errorf("Do() failed %v", err)
+			}
+			err = <-ch
+			if (err != nil) != tt.wantErr {
 				t.Errorf("Do() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err != nil {
@@ -324,9 +328,13 @@ func Test_asyncRetry_DoWithConfigContext(t *testing.T) {
 			ctx, cancel = context.WithCancel(context.Background())
 			defer cancel()
 			a := NewAsyncRetry()
+			ch := make(chan error)
 			var err error
-			// Be careful not call Do synchronously when actually using
-			if err = a.Do(tt.args.ctx(), tt.args.f, tt.args.opts()...); (err != nil) != tt.wantErr {
+			if err = a.Do(tt.args.ctx(), tt.args.f, func(err error) { ch <- err }, tt.args.opts()...); err != nil {
+				t.Errorf("Do() failed %v", err)
+			}
+			err = <-ch
+			if (err != nil) != tt.wantErr {
 				t.Errorf("Do() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err != nil {
@@ -477,19 +485,18 @@ func Test_asyncRetry_DoAndShutdown(t *testing.T) {
 			counter = 0
 			a := NewAsyncRetry()
 
-			var doErr = make(chan error)
+			var doErr = make(chan error, 1)
 			var shutdownErr = make(chan error)
-			go func() {
-				doErr <- a.Do(
-					tt.args.ctx(), tt.args.f, tt.args.opts()...,
-				)
-			}()
+			var err error
+			if err = a.Do(tt.args.ctx(), tt.args.f, func(err error) { doErr <- err }, tt.args.opts()...); err != nil {
+				t.Errorf("Do() failed %v", err)
+			}
+
 			go func() {
 				<-ch
 				shutdownErr <- a.Shutdown(context.Background())
 			}()
 
-			var err error
 			select {
 			case err = <-shutdownErr:
 			case <-time.After(time.Second * 10):
@@ -542,21 +549,22 @@ func Test_ShutdownOrder(t *testing.T) {
 			var wg sync.WaitGroup
 			for i := 0; i < szDo; i++ {
 				wg.Add(1)
-				go func() {
-					err := a.Do(
-						context.Background(),
-						func(ctx context.Context) error {
-							wg.Done()
-							time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
-							results <- 1
-							return nil
-						},
-						Timeout(0),
-					)
-					if err != nil {
-						t.Errorf("Do() error = %v, wantErr %v", err, nil)
-					}
-				}()
+				err := a.Do(
+					context.Background(),
+					func(ctx context.Context) error {
+						wg.Done()
+						time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
+						return nil
+					},
+					func(error) {
+						time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
+						results <- 1
+					},
+					Timeout(0),
+				)
+				if err != nil {
+					t.Errorf("Do() error = %v, wantErr %v", err, nil)
+				}
 			}
 			for i := 0; i < szShutdown; i++ {
 				go func() {
@@ -589,6 +597,7 @@ func Test_ShutdownOrder(t *testing.T) {
 					func(ctx context.Context) error {
 						return nil
 					},
+					func(error) {},
 				)
 				if err == nil || err.Error() != ErrInShutdown.Error() {
 					t.Errorf("call of Do after shudown must returns InShutdownErr")
@@ -606,19 +615,20 @@ func benchmarkDo(tasks int, concurrency int, b *testing.B) {
 		for c := 0; c < concurrency; c++ {
 			wg.Add(1)
 			go func() {
-				var dummy int
 				defer wg.Done()
 				for range ch {
-					for i := 0; i < 10000; i++ {
-						dummy /= dummy + 1
-					}
-					_ = a.Do(context.Background(), func(ctx context.Context) error {
-						var dummy int
-						for i := 0; i < 10000; i++ {
-							dummy /= dummy + 1
-						}
-						return nil
-					})
+					_ = a.Do(
+						context.Background(),
+						func(ctx context.Context) error {
+							var dummy int
+							for i := 0; i < 100; i++ {
+								dummy /= dummy + 1
+							}
+							return nil
+						},
+						func(err error) {
+						},
+					)
 				}
 			}()
 		}
@@ -630,9 +640,9 @@ func benchmarkDo(tasks int, concurrency int, b *testing.B) {
 	}
 }
 
-func BenchmarkDo10000With2(b *testing.B)  { benchmarkDo(3000, 2, b) }
-func BenchmarkDo10000With4(b *testing.B)  { benchmarkDo(3000, 4, b) }
-func BenchmarkDo10000With8(b *testing.B)  { benchmarkDo(3000, 8, b) }
-func BenchmarkDo10000With16(b *testing.B) { benchmarkDo(3000, 16, b) }
-func BenchmarkDo10000With32(b *testing.B) { benchmarkDo(3000, 32, b) }
-func BenchmarkDo10000With64(b *testing.B) { benchmarkDo(3000, 64, b) }
+func BenchmarkDo10000With2(b *testing.B)  { benchmarkDo(10000, 2, b) }
+func BenchmarkDo10000With4(b *testing.B)  { benchmarkDo(10000, 4, b) }
+func BenchmarkDo10000With8(b *testing.B)  { benchmarkDo(10000, 8, b) }
+func BenchmarkDo10000With16(b *testing.B) { benchmarkDo(10000, 16, b) }
+func BenchmarkDo10000With32(b *testing.B) { benchmarkDo(10000, 32, b) }
+func BenchmarkDo10000With64(b *testing.B) { benchmarkDo(10000, 64, b) }

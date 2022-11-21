@@ -19,21 +19,24 @@ func ExampleAsyncRetry() {
 		"/hello",
 		func(w http.ResponseWriter, r *http.Request) {
 			var ctx = r.Context()
-			go func() {
-				err := asyncRetry.Do(
-					ctx,
-					func(ctx context.Context) error {
-						// do task
-						// ...
-						return nil
-					},
-					asyncretry.Attempts(5),
-					asyncretry.Timeout(8*time.Second),
-				)
-				if err != nil {
-					log.Println(err.Error())
-				}
-			}()
+			if err := asyncRetry.Do(
+				ctx,
+				func(ctx context.Context) error {
+					// do task
+					// ...
+					return nil
+				},
+				func(err error) {
+					if err != nil {
+						log.Println(err.Error())
+					}
+				},
+				asyncretry.Attempts(5),
+				asyncretry.Timeout(8*time.Second),
+			); err != nil {
+				// asyncRetry is in shutdown
+				log.Println(err.Error())
+			}
 			fmt.Fprintf(w, "Hello")
 		},
 	)

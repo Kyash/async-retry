@@ -9,12 +9,16 @@ import (
 )
 
 type RetryableFunc func(ctx context.Context) error
+type FinishFunc func(error)
 
 type AsyncRetry interface {
-	// Do calls f and retry if necessary.
-	// In most cases, you should call Do in a new goroutine.
-	Do(ctx context.Context, f RetryableFunc, opts ...Option) error
-	// Shutdown shutdowns gracefully
+	// Do calls f in a new goroutine, and retry if necessary. When finished, `finish` is called regardless of success or failure exactly once.
+	// Non-nil error is always `ErrInShutdown` that will be returned when AsyncRetry is in shutdown.
+	Do(ctx context.Context, f RetryableFunc, finish FinishFunc, opts ...Option) error
+
+	// Shutdown gracefully shuts down AsyncRetry without interrupting any active `Do`.
+	// Shutdown works by first stopping to accept new `Do` request, and then waiting for all active `Do`'s background goroutines to be finished.
+	// Multiple call of Shutdown is OK.
 	Shutdown(ctx context.Context) error
 }
 
@@ -33,7 +37,12 @@ func NewAsyncRetry() AsyncRetry {
 
 var ErrInShutdown = fmt.Errorf("AsyncRetry is in shutdown")
 
-func (a *asyncRetry) Do(ctx context.Context, f RetryableFunc, opts ...Option) (retErr error) {
+func (a *asyncRetry) Do(ctx context.Context, f RetryableFunc, finish FinishFunc, opts ...Option) error {
+	config := DefaultConfig
+	for _, opt := range opts {
+		opt(&config)
+	}
+
 	a.mu.RLock()
 	select {
 	case <-a.shutdownChan:
@@ -41,22 +50,24 @@ func (a *asyncRetry) Do(ctx context.Context, f RetryableFunc, opts ...Option) (r
 		return ErrInShutdown
 	default:
 	}
-	// notice that this line should be in lock so that shutdown would not go ahead
-	a.wg.Add(1)
+	a.wg.Add(1) // notice that this line should be in lock so that shutdown would not go ahead
 	a.mu.RUnlock()
-	defer a.wg.Done()
 
-	config := DefaultConfig
-	for _, opt := range opts {
-		opt(&config)
-	}
-
-	defer func() {
-		if err := recover(); err != nil {
-			retErr = fmt.Errorf("panicking while AsyncRetry err: %v", err)
-		}
+	go func() {
+		defer a.wg.Done() // Done should be called after `finish` returns
+		defer func() {
+			if recovered := recover(); recovered != nil {
+				var err = fmt.Errorf("panicking while AsyncRetry err: %v", recovered)
+				finish(err)
+			}
+		}()
+		var err = a.call(ctx, f, &config)
+		finish(err)
 	}()
+	return nil
+}
 
+func (a *asyncRetry) call(ctx context.Context, f RetryableFunc, config *Config) error {
 	ctx, cancel := context.WithCancel(WithoutCancel(ctx))
 	defer cancel()
 	noMoreRetryCtx, noMoreRetry := context.WithCancel(config.context)
@@ -76,8 +87,7 @@ func (a *asyncRetry) Do(ctx context.Context, f RetryableFunc, opts ...Option) (r
 			if config.cancelWhenConfigContextCanceled {
 				cancel()
 			}
-		// release resources
-		case <-done:
+		case <-done: // release resources
 		}
 	}()
 
@@ -102,10 +112,8 @@ func (a *asyncRetry) Do(ctx context.Context, f RetryableFunc, opts ...Option) (r
 func (a *asyncRetry) Shutdown(ctx context.Context) error {
 	a.mu.Lock()
 	select {
-	case <-a.shutdownChan:
-		// Already closed.
-	default:
-		// Guarded by a.mu
+	case <-a.shutdownChan: // Already closed.
+	default: // Guarded by a.mu
 		close(a.shutdownChan)
 	}
 	a.mu.Unlock()
