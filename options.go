@@ -21,7 +21,7 @@ type Config struct {
 }
 
 var DefaultConfig = Config{
-	timeout:                         time.Second * 10,
+	timeout:                         0,
 	context:                         context.Background(),
 	cancelWhenShutdown:              false,
 	cancelWhenConfigContextCanceled: true,
