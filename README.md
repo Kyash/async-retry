@@ -84,7 +84,7 @@ func ExampleAsyncRetry() {
 
 
 # UseCase
-We'll post a blog explains why we need this soon.
+We wrote a [blog](https://qiita.com/behiron/items/b224a68e8c3d8b9de89d) about this libarary.
 
 # Contributing
 We are always welcome your contribution!
