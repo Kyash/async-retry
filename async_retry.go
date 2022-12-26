@@ -94,9 +94,9 @@ func (a *asyncRetry) call(ctx context.Context, f RetryableFunc, config *Config) 
 	return retry.Do(
 		func() error {
 			if config.timeout > 0 {
-				var timeoutCancel context.CancelFunc
-				ctx, timeoutCancel = context.WithTimeout(ctx, config.timeout)
+				timeoutCtx, timeoutCancel := context.WithTimeout(ctx, config.timeout)
 				defer timeoutCancel()
+				return f(timeoutCtx)
 			}
 			return f(ctx)
 		},

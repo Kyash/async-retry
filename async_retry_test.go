@@ -124,6 +124,13 @@ func Test_asyncRetry_Do(t *testing.T) {
 			name: "Timeout set correctly for each try",
 			args: args{
 				f: func(ctx context.Context) error {
+					select {
+					case <-ctx.Done():
+						// Check ctx passed from async-retry is not closed at the start of f() processing.
+						return fmt.Errorf("context already closed")
+					default:
+					}
+
 					counter++
 					select {
 					case <-ctx.Done():
@@ -140,7 +147,7 @@ func Test_asyncRetry_Do(t *testing.T) {
 				},
 				opts: []Option{
 					Delay(1 * time.Millisecond),
-					Timeout(10 * time.Millisecond),
+					Timeout(1 * time.Second),
 					Attempts(5),
 				},
 			},
