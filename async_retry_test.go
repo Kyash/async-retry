@@ -124,16 +124,16 @@ func Test_asyncRetry_Do(t *testing.T) {
 			name: "Timeout set correctly for each try",
 			args: args{
 				f: func(ctx context.Context) error {
-					started := time.Now()
+					select {
+					case <-ctx.Done():
+						// Check ctx passed from async-retry is not closed at the start of f() processing.
+						return fmt.Errorf("context already closed")
+					default:
+					}
+
 					counter++
 					select {
 					case <-ctx.Done():
-						// Since the timeout for this test case is 10 msec,
-						// even considering the error of the measurement,
-						// at least 9 msec should have elapsed by the time `ctx.Done()` is received.
-						if time.Since(started) < (9 * time.Millisecond) {
-							return Unrecoverable(fmt.Errorf("timeout is too fast"))
-						}
 						if counter < 3 {
 							return fmt.Errorf("timeout")
 						}
@@ -147,7 +147,7 @@ func Test_asyncRetry_Do(t *testing.T) {
 				},
 				opts: []Option{
 					Delay(1 * time.Millisecond),
-					Timeout(10 * time.Millisecond),
+					Timeout(1 * time.Second),
 					Attempts(5),
 				},
 			},
